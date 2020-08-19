@@ -1,15 +1,15 @@
 from requests.exceptions import ConnectionError
 
 
-class TransferWireExcetption(Exception):
+class TransferWiseExcetption(Exception):
     pass
 
 
-class TransferWireNoPrivateKeyException(TransferWireExcetption):
+class TransferWiseNoPrivateKeyException(TransferWiseExcetption):
     pass
 
 
-class TransferWizeConnectionError(TransferWireExcetption, ConnectionError):
+class TransferWiseConnectionError(TransferWiseExcetption, ConnectionError):
     @classmethod
     def create_from_connection_error(cls, connection_error):
         return cls(

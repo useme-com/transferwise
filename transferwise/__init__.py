@@ -4,12 +4,12 @@ import base64
 from urllib.parse import urljoin
 from OpenSSL import crypto
 
-from .exceptions import TransferWireNoPrivateKeyException, TransferWizeConnectionError
+from .exceptions import TransferWiseNoPrivateKeyException, TransferWiseConnectionError
 
 logger = logging.getLogger(__name__)
 
 
-class TransferWizeClient:
+class TransferWiseClient:
     def __init__(
             self, api_base_url, api_token, private_key_path,
             private_key_passphrase=None):
@@ -24,7 +24,7 @@ class TransferWizeClient:
         except (IOError, ValueError):
             logger.exception(
                 "EnterCash API: Problem with open/read private key")
-            raise TransferWireNoPrivateKeyException()
+            raise TransferWiseNoPrivateKeyException()
 
         self.private_key = crypto.load_privatekey(
             crypto.FILETYPE_PEM, private_key, private_key_passphrase)
@@ -69,10 +69,10 @@ class TransferWizeClient:
             return response.json()
         except ConnectionError as e:
             logger.exception('TransferWise connection error')
-            raise TransferWizeConnectionError.create_from_connection_error(e)
+            raise TransferWiseConnectionError.create_from_connection_error(e)
 
 
-class Accounts(TransferWizeClient):
+class Accounts(TransferWiseClient):
     url = 'v1/accounts'
 
     def create_email_recipient(self, user_id, account_name, currency, email):
@@ -89,7 +89,7 @@ class Accounts(TransferWizeClient):
         return self._request('POST', self.url, data)
 
 
-class Profiles(TransferWizeClient):
+class Profiles(TransferWiseClient):
     url = 'v1/profiles'
 
     def create_personal_profile(
