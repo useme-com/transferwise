@@ -9,12 +9,16 @@ class TransferWiseNoPrivateKeyException(TransferWiseExcetption):
     pass
 
 
-class TransferWizeConnectionError(TransferWiseExcetption, ConnectionError):
+class TransferWiseConnectionError(TransferWiseExcetption, ConnectionError):
     @classmethod
     def create_from_connection_error(cls, connection_error):
         return cls(
             response=connection_error.response,
             request=connection_error.request)
+
+
+class QuoteAttributesError(TransferWiseExcetption):
+    pass
 
 
 class UndefinedAPI(Exception):
