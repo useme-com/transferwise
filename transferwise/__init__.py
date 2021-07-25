@@ -5,12 +5,12 @@ from urllib.parse import urljoin
 from OpenSSL import crypto
 
 from .exceptions import TransferWiseNoPrivateKeyException, \
-    TransferWizeConnectionError
+    TransferWiseConnectionError, QuoteAttributesError
 
 logger = logging.getLogger(__name__)
 
 
-class TransferWizeClient:
+class TransferWiseClient:
     def __init__(
             self, api_base_url, api_token, private_key_path,
             private_key_passphrase=None):
@@ -67,10 +67,10 @@ class TransferWizeClient:
             return response.json()
         except ConnectionError as e:
             logger.exception('TransferWise connection error')
-            raise TransferWizeConnectionError.create_from_connection_error(e)
+            raise TransferWiseConnectionError.create_from_connection_error(e)
 
 
-class Accounts(TransferWizeClient):
+class Accounts(TransferWiseClient):
     url = 'v1/accounts'
 
     def create_email_recipient(
@@ -87,8 +87,22 @@ class Accounts(TransferWizeClient):
 
         return self._request('POST', self.url, data)
 
+    def create_recipient(
+            self, profile_id, account_name, currency, **kwargs):
+        data = {
+            "profile": profile_id,
+            "accountHolderName": account_name,
+            "currency": currency.upper(),
+            "type": "email",
+        }
 
-class Profiles(TransferWizeClient):
+        if kwargs:
+            data['details'] = kwargs
+
+        return self._request('POST', self.url, data)
+
+
+class Profiles(TransferWiseClient):
     url = 'v1/profiles'
     url_v3 = 'v3/profiles'
 
@@ -137,42 +151,51 @@ class Profiles(TransferWizeClient):
         return self._request('POST', url, data)
 
 
-class Quote(TransferWizeClient):
-    url = 'v1/quotes'
-
-    TYPE_BALANCE_PAYOUT = 'BALANCE_PAYOUT'
-    TYPE_BALANCE_CONVERSION = 'BALANCE_CONVERSION'
+class Quote(TransferWiseClient):
+    url = 'v2/quotes'
 
     def create_quote(
-            self, profile_id, source_currency, target_currency, target_amount,
-            payout_type=None):
+            self, profile_id, source_currency, target_currency,
+            source_amount=None, target_amount=None, target_account=None):
 
-        if not payout_type:
-            payout_type = self.TYPE_BALANCE_PAYOUT
+        if not source_amount and not target_amount:
+            raise QuoteAttributesError(
+                "source_amount OR target_amount are required, never both.")
+
+        if source_amount and target_amount:
+            raise QuoteAttributesError(
+                "source_amount OR target_amount are required, never both.")
 
         data = {
           "profile": profile_id,
-          "source": source_currency.upper(),
-          "target": target_currency.upper(),
-          "rateType": "FIXED",
+          "sourceCurrency": source_currency.upper(),
+          "targetCurrency": target_currency.upper(),
           "targetAmount": target_amount,
-          "type": payout_type
+          "sourceAmount": source_amount,
         }
+
+        if target_account:
+            data['targetAccount'] = target_account
 
         return self._request('POST', self.url, data)
 
+    def get_account_requirements(self, quote_id):
+        url = f"{self.url}/{quote_id}/account-requirements"
+        return self._request('GET', url)
 
-class Transfer(TransferWizeClient):
-    url = 'v1/transfers'
+
+class Transfer(TransferWiseClient):
+    url_v1 = 'v1/transfers'
+    url = 'v2/transfers'
 
     def create_transfer(
             self, target_account, quote_id, transaction_id,
             details_reference=None, details_transfer_purpose=None,
-            details_source_of_Funds=None):
+            details_source_of_Funds=None, **kwargs):
 
         data = {
           "targetAccount": target_account,
-          "quote": quote_id,
+          "quoteUuid": quote_id,
           "customerTransactionId": transaction_id,
           "details": {}
         }
@@ -184,4 +207,16 @@ class Transfer(TransferWizeClient):
         if details_transfer_purpose:
             data['details']['sourceOfFunds'] = details_source_of_Funds
 
+        if kwargs:
+            data['details'].update(**kwargs)
+
         return self._request('POST', self.url, data)
+
+    def list(self, profile_id, status, source_currency, created_date_start,
+             created_date_end, offset=0, limit=100):
+        url = f"{self.url_v1}/?offset={offset}&limit={limit}&" \
+            f"status={status}&sourceCurrency={source_currency}&" \
+            f"createdDateStart={created_date_start}&" \
+            f"createdDateEnd={created_date_end}"
+
+        eturn self._request('GET', url)
