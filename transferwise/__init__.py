@@ -72,6 +72,9 @@ class TransferWiseClient:
 
 class Accounts(TransferWiseClient):
     url = 'v1/accounts'
+    url_v2 = 'v2/accounts'
+
+    borderless_url = 'v1/borderless-accounts'
 
     def create_email_recipient(
             self, profile_id, account_name, currency, email):
@@ -88,7 +91,8 @@ class Accounts(TransferWiseClient):
         return self._request('POST', self.url, data)
 
     def create_recipient(
-            self, profile_id, account_name, currency, **kwargs):
+            self, profile_id, account_name, currency, account_type=None,
+            **kwargs):
         data = {
             "profile": profile_id,
             "accountHolderName": account_name,
@@ -96,10 +100,47 @@ class Accounts(TransferWiseClient):
             "type": "email",
         }
 
+        if account_type:
+            data['type'] = account_type
+
         if kwargs:
             data['details'] = kwargs
 
         return self._request('POST', self.url, data)
+
+    def create_creditcard_recipient(
+            self, account_name, currency, country, cc_token, cc_owner_address,
+            cc_owner_country, cc_owner_post_code, cc_owner_state,
+            cc_owner_city):
+
+        data = {
+            "accountHolderName": account_name,
+            "currency": currency,
+            "country": country,
+            "type": "CARD",
+            "details": {
+                "cardToken": cc_token,
+                "address": {
+                    "firstLine": cc_owner_address,
+                    "country": cc_owner_country,
+                    "postCode": cc_owner_post_code,
+                    "state": cc_owner_state,
+                    "city": cc_owner_city
+                }
+            }
+        }
+        return self._request('POST', self.url_v2, data)
+
+    def get_balance(self, profile_id):
+        url = f'{self.borderless_url}/?profileId={profile_id}'
+        return self._request('GET', url)
+
+    def get_requirements(
+            self, source_currency, target_currency, source_amount):
+        url = f'v1/account-requirements?source={source_currency}&target='\
+            f'{target_currency}&sourceAmount={source_amount}'
+
+        return self._request('GET', url)
 
 
 class Profiles(TransferWiseClient):
@@ -224,3 +265,14 @@ class Transfer(TransferWiseClient):
     def cancel(self, transfer_id):
         url = f"{self.url_v1}/{transfer_id}/cancel"
         return self._request('PUT', url)
+
+
+class CardTokenization(TransferWiseClient):
+    url = 'v3/card'
+
+    def tokenize(self, card_number):
+        data = {
+            'cardNumber': card_number,
+        }
+
+        return self._request('POST', self.url, data)
