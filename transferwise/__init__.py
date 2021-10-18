@@ -131,6 +131,21 @@ class Accounts(TransferWiseClient):
         }
         return self._request('POST', self.url_v2, data)
 
+    def create_creditcard_recipient_by_kwargs(
+            self, account_name, currency, country, **kwargs):
+
+        data = {
+            "accountHolderName": account_name,
+            "currency": currency,
+            "country": country,
+            "type": "CARD",
+        }
+
+        if kwargs:
+            data['details'] = kwargs
+
+        return self._request('POST', self.url, data)
+
     def get_balance(self, profile_id):
         url = f'{self.borderless_url}/?profileId={profile_id}'
         return self._request('GET', url)
@@ -251,7 +266,7 @@ class Transfer(TransferWiseClient):
         if kwargs:
             data['details'].update(**kwargs)
 
-        return self._request('POST', self.url, data)
+        return self._request('POST', self.url_v1, data)
 
     def list(self, profile_id, status, source_currency, created_date_start,
              created_date_end, offset=0, limit=100):
