@@ -151,11 +151,21 @@ class Accounts(TransferWiseClient):
         return self._request('GET', url)
 
     def get_requirements(
-            self, source_currency, target_currency, source_amount):
+            self, source_currency, target_currency, source_amount, refresh_requirements=None):
+        if not refresh_requirements:
+            url = f'v1/account-requirements?source={source_currency}&target='\
+                f'{target_currency}&sourceAmount={source_amount}'
+
+            return self._request('GET', url)
+
+        data = {
+            "type": "personal",
+            "details": refresh_requirements,
+        }
+
         url = f'v1/account-requirements?source={source_currency}&target='\
             f'{target_currency}&sourceAmount={source_amount}'
-
-        return self._request('GET', url)
+        return self._request('POST', url, data)
 
 
 class Profiles(TransferWiseClient):
