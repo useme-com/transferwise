@@ -1,4 +1,4 @@
 bumpversion>=0.5.3
 tox>=3.14.0
 requests==2.24.0
-pyopenssl==19.1.0
+pyopenssl==22.0.0
