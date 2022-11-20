@@ -51,6 +51,7 @@ class TransferWiseClient:
         return headers
 
     def _request(self, method, url, payload: dict = None, headers=None):
+        logger.debug('TW method: %s, payload: %s', method, payload)
         url = urljoin(self.api_base_url, url)
         if not headers:
             headers = self._get_headers()
@@ -60,7 +61,9 @@ class TransferWiseClient:
             is_approval_rejected = \
                 response.headers.get('x-2fa-approval-result', None) == \
                 'REJECTED'
-
+            logger.debug(
+                'TW method: %s, %s, payload: %s, response: %s',
+                url, method, payload, response)
             if not response.ok and is_approval_rejected:
                 return self._request(
                     method, url, payload, self._get_approval_headers(response))
