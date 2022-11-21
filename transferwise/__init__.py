@@ -62,8 +62,8 @@ class TransferWiseClient:
                 response.headers.get('x-2fa-approval-result', None) == \
                 'REJECTED'
             logger.debug(
-                'TW method: %s, %s, payload: %s, response: %s',
-                url, method, payload, response)
+                'TW method: %s, %s, payload: %s, response: %s, %s',
+                url, method, payload, response.status_code, response.content)
             if not response.ok and is_approval_rejected:
                 return self._request(
                     method, url, payload, self._get_approval_headers(response))
